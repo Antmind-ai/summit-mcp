@@ -1,5 +1,5 @@
 {
-  "name": "summit-mcp",
+  "name": "@antmind-ai/summit-mcp",
   "version": "0.1.0",
   "description": "Summit MCP server — conversion-audit insights for coding agents (Claude Code, Codex, Gemini CLI)",
   "keywords": [
@@ -23,6 +23,9 @@
     "url": "https://github.com/antmind-ai/summit-mcp/issues"
   },
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "summit-mcp": "bin/summit-mcp.js"
   },

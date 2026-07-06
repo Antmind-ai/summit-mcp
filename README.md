@@ -1,6 +1,6 @@
 # Summit MCP server
 
-[![npm](https://img.shields.io/npm/v/summit-mcp)](https://www.npmjs.com/package/summit-mcp)
+[![npm](https://img.shields.io/npm/v/@antmind-ai%2Fsummit-mcp)](https://www.npmjs.com/package/@antmind-ai/summit-mcp)
 
 Bring [Summit](https://trysummit.ai)'s conversion-audit insights into your coding agent. Hand
 Claude Code / Codex / Gemini CLI a Summit audit and have it implement the fixes — grounded in
@@ -11,13 +11,13 @@ real CRO analysis with exact selectors and before→after copy.
 Nothing to install — any MCP client can launch it straight from npm:
 
 ```bash
-npx -y summit-mcp
+npx -y @antmind-ai/summit-mcp
 ```
 
 Or install the `summit-mcp` command globally:
 
 ```bash
-npm install -g summit-mcp
+npm install -g @antmind-ai/summit-mcp
 ```
 
 Requires Node.js ≥ 18.17.
@@ -73,14 +73,14 @@ claude mcp add summit \
   --env SUMMIT_API_BASE_URL=https://api.trysummit.ai \
   --env SUMMIT_API_TOKEN=smt_your_token_here \
   --env SUMMIT_WORKSPACE_ID=your_workspace_id \
-  -- npx -y summit-mcp
+  -- npx -y @antmind-ai/summit-mcp
 ```
 
 ### Codex CLI — `~/.codex/config.toml`
 ```toml
 [mcp_servers.summit]
 command = "npx"
-args = ["-y", "summit-mcp"]
+args = ["-y", "@antmind-ai/summit-mcp"]
 env = { SUMMIT_API_BASE_URL = "https://api.trysummit.ai", SUMMIT_API_TOKEN = "smt_your_token_here", SUMMIT_WORKSPACE_ID = "your_workspace_id" }
 ```
 
@@ -90,7 +90,7 @@ env = { SUMMIT_API_BASE_URL = "https://api.trysummit.ai", SUMMIT_API_TOKEN = "sm
   "mcpServers": {
     "summit": {
       "command": "npx",
-      "args": ["-y", "summit-mcp"],
+      "args": ["-y", "@antmind-ai/summit-mcp"],
       "env": {
         "SUMMIT_API_BASE_URL": "https://api.trysummit.ai",
         "SUMMIT_API_TOKEN": "smt_your_token_here",
@@ -101,7 +101,7 @@ env = { SUMMIT_API_BASE_URL = "https://api.trysummit.ai", SUMMIT_API_TOKEN = "sm
 }
 ```
 
-(Any MCP-aware client works — point it at `npx -y summit-mcp`, or at the `summit-mcp` command if
+(Any MCP-aware client works — point it at `npx -y @antmind-ai/summit-mcp`, or at the `summit-mcp` command if
 installed globally, over stdio. Omit the token + workspace-id envs to use just the free audit tools.)
 
 ## Example agent flow
