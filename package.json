@@ -1,0 +1,43 @@
+{
+  "name": "summit-mcp",
+  "version": "0.1.0",
+  "description": "Summit MCP server — conversion-audit insights for coding agents (Claude Code, Codex, Gemini CLI)",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "summit",
+    "cro",
+    "conversion-audit",
+    "ab-testing",
+    "ai-agents"
+  ],
+  "license": "MIT",
+  "author": "Antmind Ventures Pvt Ltd",
+  "homepage": "https://trysummit.ai/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/antmind-ai/summit-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/antmind-ai/summit-mcp/issues"
+  },
+  "type": "module",
+  "bin": {
+    "summit-mcp": "bin/summit-mcp.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.1"
+  }
+}
