@@ -34,6 +34,15 @@ Study → Approve → Ship loop, so an agent can drive Summit end to end:
     summit_experiment_results(experiment_id)  -> Bayesian results: leader, lift, P(beat control)
     summit_site_pulse(site_id)                -> is the snippet installed & receiving data?
 
+Per-variant tools act on ONE variant before an experiment goes live (get ids from
+summit_list_variants), so an agent can fix or hand-pick variants instead of the whole set:
+
+    summit_list_variants(experiment_id)              -> variants + keys/mutations/QA (the ids below)
+    summit_regenerate_variant(variant_id)            -> regenerate just this challenger + re-QA (MUTATES)
+    summit_run_variant_qa(variant_id)                -> re-run pre-launch QA for one variant (MUTATES)
+    summit_discard_variant(variant_id)               -> delete one challenger, keep the rest (MUTATES)
+    summit_publish_variant(experiment_id, variant_id) -> ship one variant to 100%, no A/B test (MUTATES)
+
 Config via env:
     SUMMIT_API_BASE_URL   backend root (default http://localhost:8000)
     SUMMIT_API_TOKEN      bearer token for the authenticated workspace tools (optional)

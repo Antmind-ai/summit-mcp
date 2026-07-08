@@ -74,7 +74,7 @@ export function startupLog(config) {
 }
 
 /**
- * Build the 14 Summit tools bound to a config + fetch implementation.
+ * Build the Summit tools bound to a config + fetch implementation.
  * Returns [{ name, description, inputSchema, handler }, …]; handlers return plain objects.
  */
 export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
@@ -122,6 +122,20 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
     if (res.status === 422) {
       return { error: "validation_error", detail: "The Summit backend rejected the request payload." };
     }
+    if (res.status === 409) {
+      // A conflict with the current experiment/variant state — surface the backend's code + message
+      // (e.g. qa_failed, not_approved, not_editable) so the agent can act on it.
+      let code = "conflict";
+      let message = "";
+      try {
+        const body = await res.json();
+        code = body?.error?.code || "conflict";
+        message = body?.error?.message || "";
+      } catch {
+        /* keep defaults */
+      }
+      return { error: code, detail: message || "The action conflicts with the current experiment state." };
+    }
     return { error: "backend_unavailable", detail: `The Summit backend returned HTTP ${res.status}.` };
   }
 
@@ -163,6 +177,8 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
     if (!res.ok) {
       return statusError(res, { url: path, elapsed: elapsed(), notFoundDetail });
     }
+    // 204 No Content (e.g. a delete) has no JSON body to parse.
+    if (res.status === 204) return { status: "ok" };
     try {
       return await res.json();
     } catch (exc) {
@@ -213,10 +229,10 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
   }
 
   /** Run one authenticated workspace call, mapping every failure to a structured error object. */
-  function workspaceRequest(method, path, { params = null, notFoundDetail = "" } = {}) {
+  function workspaceRequest(method, path, { params = null, json = null, notFoundDetail = "" } = {}) {
     const err = authMissing();
     if (err) return Promise.resolve(err);
-    return request(method, `/workspaces/${workspaceId}${path}`, { params, notFoundDetail });
+    return request(method, `/workspaces/${workspaceId}${path}`, { params, json, notFoundDetail });
   }
 
   async function sharedAudit(report, transform) {
@@ -387,6 +403,78 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
       handler: ({ experiment_id: experimentId }) =>
         badUuid(experimentId, "experiment_id") ??
         workspaceRequest("POST", `/experiments/${experimentId}/launch`, {
+          notFoundDetail: "No such experiment in this workspace.",
+        }),
+    },
+    // ── per-variant actions (pre-live: fix or hand-pick individual variants) ──
+    {
+      name: "summit_list_variants",
+      description:
+        "List an experiment's variants (control + challengers) with each one's key, name, role, the " +
+        "DOM mutations it applies, and its impression/conversion counters.\n\n" +
+        "Use this to get the `variant_id`s the per-variant tools need. Requires auth env vars.",
+      inputSchema: { experiment_id: z.string().describe("Experiment UUID") },
+      handler: ({ experiment_id: experimentId }) =>
+        badUuid(experimentId, "experiment_id") ??
+        workspaceRequest("GET", `/experiments/${experimentId}/variants`, {
+          notFoundDetail: "No such experiment in this workspace.",
+        }),
+    },
+    {
+      name: "summit_regenerate_variant",
+      description:
+        "Regenerate a SINGLE challenger in place — MUTATES: replaces just this variant's copy/mutations " +
+        "(keeping the others) and re-runs its pre-launch QA. Only before the experiment goes live; the " +
+        "control can't be regenerated. Get `variant_id` from summit_list_variants. Requires auth + a paid plan.",
+      inputSchema: { variant_id: z.string().describe("Variant UUID from summit_list_variants") },
+      handler: ({ variant_id: variantId }) =>
+        badUuid(variantId, "variant_id") ??
+        workspaceRequest("POST", `/variants/${variantId}/regenerate`, {
+          notFoundDetail: "No such variant in this workspace.",
+        }),
+    },
+    {
+      name: "summit_run_variant_qa",
+      description:
+        "Re-run pre-launch QA for a SINGLE variant — MUTATES: queues a headless render that replaces " +
+        "just that variant's QA verdict. Read it back with summit_list_variants. Requires auth env vars.",
+      inputSchema: { variant_id: z.string().describe("Variant UUID from summit_list_variants") },
+      handler: ({ variant_id: variantId }) =>
+        badUuid(variantId, "variant_id") ??
+        workspaceRequest("POST", `/variants/${variantId}/qa`, {
+          notFoundDetail: "No such variant in this workspace.",
+        }),
+    },
+    {
+      name: "summit_discard_variant",
+      description:
+        "Discard a challenger variant — MUTATES: permanently deletes it (and its QA/media), keeping the " +
+        "control and the other variants. Only before the experiment goes live; the control can't be " +
+        "discarded. Requires auth env vars.",
+      inputSchema: { variant_id: z.string().describe("Variant UUID from summit_list_variants") },
+      handler: ({ variant_id: variantId }) =>
+        badUuid(variantId, "variant_id") ??
+        workspaceRequest("DELETE", `/variants/${variantId}`, {
+          notFoundDetail: "No such variant in this workspace.",
+        }),
+    },
+    {
+      name: "summit_publish_variant",
+      description:
+        "Publish ONE chosen variant to 100% of traffic now — MUTATES: skips the A/B test and deploys the " +
+        "variant's changes to every visitor (approved -> shipped). The experiment must be approved first. " +
+        "Blocks if that variant's QA failed; pass override=true to publish anyway. Requires auth env vars.",
+      inputSchema: {
+        experiment_id: z.string().describe("Experiment UUID"),
+        variant_id: z.string().describe("Variant UUID to ship to 100%"),
+        override: z.boolean().optional().describe("Publish even if the variant's QA failed"),
+      },
+      handler: ({ experiment_id: experimentId, variant_id: variantId, override = false }) =>
+        badUuid(experimentId, "experiment_id") ??
+        badUuid(variantId, "variant_id") ??
+        workspaceRequest("POST", `/experiments/${experimentId}/publish`, {
+          params: override ? { override: "true" } : null,
+          json: { variant_id: variantId },
           notFoundDetail: "No such experiment in this workspace.",
         }),
     },

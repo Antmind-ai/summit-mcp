@@ -1,6 +1,6 @@
 {
-  "name": "@antmind-ai/summit-mcp",
-  "version": "0.1.0",
+  "name": "@summit-ai/summit-mcp",
+  "version": "0.1.1",
   "description": "Summit MCP server — conversion-audit insights for coding agents (Claude Code, Codex, Gemini CLI)",
   "keywords": [
     "mcp",

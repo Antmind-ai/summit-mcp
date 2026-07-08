@@ -8,6 +8,7 @@ import { baseIsCleartextRemote, createTools } from "../src/tools.js";
 const WS = "11111111-1111-1111-1111-111111111111";
 const FINDING = "22222222-2222-2222-2222-222222222222";
 const EXP = "33333333-3333-3333-3333-333333333333";
+const VAR = "44444444-4444-4444-4444-444444444444";
 
 const AUTHED_ENV = {
   SUMMIT_API_BASE_URL: "http://localhost:8000",
@@ -186,4 +187,69 @@ test("a non-JSON 200 body maps to backend_unavailable", async () => {
   const out = await tools.summit_list_sites({});
   assert.equal(out.error, "backend_unavailable");
   assert.ok(out.detail.includes("unreadable"));
+});
+
+// ── per-variant tools ────────────────────────────────────────────────────────
+test("regenerate_variant POSTs to the variant path", async () => {
+  const seen = {};
+  const tools = toolMap({
+    fetchImpl: (url, init) => {
+      seen.method = init.method;
+      seen.path = new URL(url).pathname;
+      return jsonResponse(202, { status: "queued", variant_id: VAR });
+    },
+  });
+  const out = await tools.summit_regenerate_variant({ variant_id: VAR });
+  assert.equal(seen.method, "POST");
+  assert.equal(seen.path, `/api/v1/workspaces/${WS}/variants/${VAR}/regenerate`);
+  assert.equal(out.status, "queued");
+});
+
+test("discard_variant DELETEs and a 204 maps to {status: ok}", async () => {
+  const seen = {};
+  const tools = toolMap({
+    fetchImpl: (url, init) => {
+      seen.method = init.method;
+      return new Response(null, { status: 204 });
+    },
+  });
+  const out = await tools.summit_discard_variant({ variant_id: VAR });
+  assert.equal(seen.method, "DELETE");
+  assert.equal(out.status, "ok");
+});
+
+test("publish_variant POSTs the body + override query, and 409 surfaces the backend code", async () => {
+  const seen = {};
+  const ok = toolMap({
+    fetchImpl: async (url, init) => {
+      const u = new URL(url);
+      seen.path = u.pathname;
+      seen.override = u.searchParams.get("override");
+      seen.body = JSON.parse(init.body);
+      return jsonResponse(200, { status: "shipped", winner_variant_id: VAR });
+    },
+  });
+  let out = await ok.summit_publish_variant({ experiment_id: EXP, variant_id: VAR, override: true });
+  assert.equal(seen.path, `/api/v1/workspaces/${WS}/experiments/${EXP}/publish`);
+  assert.equal(seen.override, "true");
+  assert.deepEqual(seen.body, { variant_id: VAR });
+  assert.equal(out.status, "shipped");
+
+  const conflict = toolMap({
+    fetchImpl: () => jsonResponse(409, { error: { code: "qa_failed", message: "QA failed for this variant." } }),
+  });
+  out = await conflict.summit_publish_variant({ experiment_id: EXP, variant_id: VAR });
+  assert.equal(out.error, "qa_failed");
+  assert.ok(out.detail.includes("QA failed"));
+});
+
+test("publish_variant fails fast on a bad uuid", async () => {
+  const tools = toolMap({
+    fetchImpl: () => {
+      throw new Error("network call made for an invalid id");
+    },
+  });
+  const out = await tools.summit_publish_variant({ experiment_id: EXP, variant_id: "not-a-uuid" });
+  assert.equal(out.error, "validation_error");
+  assert.ok(out.detail.includes("variant_id"));
 });

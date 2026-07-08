@@ -1,6 +1,6 @@
 # Summit MCP server
 
-[![npm](https://img.shields.io/npm/v/@antmind-ai%2Fsummit-mcp)](https://www.npmjs.com/package/@antmind-ai/summit-mcp)
+[![npm](https://img.shields.io/npm/v/@summit-ai%2Fsummit-mcp)](https://www.npmjs.com/package/@summit-ai/summit-mcp)
 
 Bring [Summit](https://trysummit.ai)'s conversion-audit insights into your coding agent. Hand
 Claude Code / Codex / Gemini CLI a Summit audit and have it implement the fixes — grounded in
@@ -11,13 +11,13 @@ real CRO analysis with exact selectors and before→after copy.
 Nothing to install — any MCP client can launch it straight from npm:
 
 ```bash
-npx -y @antmind-ai/summit-mcp
+npx -y @summit-ai/summit-mcp
 ```
 
 Or install the `summit-mcp` command globally:
 
 ```bash
-npm install -g @antmind-ai/summit-mcp
+npm install -g @summit-ai/summit-mcp
 ```
 
 Requires Node.js ≥ 18.17.
@@ -38,6 +38,11 @@ Requires Node.js ≥ 18.17.
 | `summit_reject_finding(finding_id)` *(auth, mutates)* | Dismiss a proposed fix. |
 | `summit_approve_experiment(experiment_id)` *(auth, mutates)* | Approve a built experiment for launch. |
 | `summit_launch_experiment(experiment_id)` *(auth, mutates)* | Start serving the A/B test live. |
+| `summit_list_variants(experiment_id)` *(auth)* | An experiment's variants — key, mutations, QA, counters (the ids for the tools below). |
+| `summit_regenerate_variant(variant_id)` *(auth, mutates)* | Regenerate **one** challenger in place + re-QA it (Pro). |
+| `summit_run_variant_qa(variant_id)` *(auth, mutates)* | Re-run pre-launch QA for one variant. |
+| `summit_discard_variant(variant_id)` *(auth, mutates)* | Delete one challenger, keep the rest. |
+| `summit_publish_variant(experiment_id, variant_id)` *(auth, mutates)* | Ship **one** variant to 100% now — no A/B test. |
 | `summit_experiment_results(experiment_id)` *(auth)* | Bayesian verdict: leader, lift, P(beat control), significance. |
 | `summit_site_pulse(site_id)` *(auth)* | Snippet install check + 7-day visitors/conversions/rage clicks. |
 
@@ -73,14 +78,14 @@ claude mcp add summit \
   --env SUMMIT_API_BASE_URL=https://api.trysummit.ai \
   --env SUMMIT_API_TOKEN=smt_your_token_here \
   --env SUMMIT_WORKSPACE_ID=your_workspace_id \
-  -- npx -y @antmind-ai/summit-mcp
+  -- npx -y @summit-ai/summit-mcp
 ```
 
 ### Codex CLI — `~/.codex/config.toml`
 ```toml
 [mcp_servers.summit]
 command = "npx"
-args = ["-y", "@antmind-ai/summit-mcp"]
+args = ["-y", "@summit-ai/summit-mcp"]
 env = { SUMMIT_API_BASE_URL = "https://api.trysummit.ai", SUMMIT_API_TOKEN = "smt_your_token_here", SUMMIT_WORKSPACE_ID = "your_workspace_id" }
 ```
 
@@ -90,7 +95,7 @@ env = { SUMMIT_API_BASE_URL = "https://api.trysummit.ai", SUMMIT_API_TOKEN = "sm
   "mcpServers": {
     "summit": {
       "command": "npx",
-      "args": ["-y", "@antmind-ai/summit-mcp"],
+      "args": ["-y", "@summit-ai/summit-mcp"],
       "env": {
         "SUMMIT_API_BASE_URL": "https://api.trysummit.ai",
         "SUMMIT_API_TOKEN": "smt_your_token_here",
@@ -101,7 +106,7 @@ env = { SUMMIT_API_BASE_URL = "https://api.trysummit.ai", SUMMIT_API_TOKEN = "sm
 }
 ```
 
-(Any MCP-aware client works — point it at `npx -y @antmind-ai/summit-mcp`, or at the `summit-mcp` command if
+(Any MCP-aware client works — point it at `npx -y @summit-ai/summit-mcp`, or at the `summit-mcp` command if
 installed globally, over stdio. Omit the token + workspace-id envs to use just the free audit tools.)
 
 ## Example agent flow
