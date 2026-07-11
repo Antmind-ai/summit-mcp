@@ -11,7 +11,7 @@ const { version } = createRequire(import.meta.url)("../package.json");
 
 const INSTRUCTIONS = `Summit MCP server.
 
-Exposes Summit conversion-audit insights to coding agents (Claude Code, Codex, Gemini CLI, …)
+Exposes Summit AI conversion-audit insights to coding agents (Claude Code, Codex, Gemini CLI, …)
 over the Model Context Protocol. The headline tools work off a public share token — no auth —
 so a developer can hand an agent an audit link and have it implement the fixes:
 
@@ -26,7 +26,7 @@ Study → Approve → Ship loop, so an agent can drive Summit end to end:
     summit_list_sites()                       -> sites in your workspace
     summit_list_experiments(site_id)          -> experiments + status for a site
     summit_workspace_overview()               -> KPI rollup: visitors, conversions, pending reviews, winners
-    summit_review_queue()                     -> everything waiting on human sign-off
+    summit_review_queue(limit, offset)        -> queue waiting on human sign-off (paged)
     summit_approve_finding(finding_id)        -> approve a fix -> builds an A/B experiment (MUTATES)
     summit_reject_finding(finding_id)         -> dismiss a proposed fix (MUTATES)
     summit_approve_experiment(experiment_id)  -> approve a built experiment for launch (MUTATES)

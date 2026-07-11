@@ -87,15 +87,15 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
     const timing = elapsed !== null ? ` in ${elapsed.toFixed(2)}s` : "";
     if (exc?.name === "TimeoutError" || exc?.name === "AbortError") {
       log("WARNING", `backend timeout for ${url || "<request>"}${timing}: ${exc}`);
-      return { error: "timeout", detail: `The Summit backend did not respond within ${timeoutSecs}s.` };
+      return { error: "timeout", detail: `The Summit AI backend did not respond within ${timeoutSecs}s.` };
     }
     if (exc instanceof SyntaxError) {
       // res.json() failed — the backend replied with a non-JSON body.
       log("WARNING", `unexpected error handling ${url || "<request>"}${timing}: ${exc}`);
-      return { error: "backend_unavailable", detail: "The Summit backend returned an unreadable response." };
+      return { error: "backend_unavailable", detail: "The Summit AI backend returned an unreadable response." };
     }
     log("WARNING", `backend unreachable for ${url || "<request>"}${timing}: ${exc}`);
-    return { error: "backend_unavailable", detail: "Could not reach the Summit backend. Is it running?" };
+    return { error: "backend_unavailable", detail: "Could not reach the Summit AI backend. Is it running?" };
   }
 
   async function statusError(res, { url = "", elapsed = null, notFoundDetail = "" } = {}) {
@@ -115,12 +115,12 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
         code = "";
       }
       if (code === "upgrade_required") {
-        return { error: "upgrade_required", detail: "This action needs a paid Summit plan." };
+        return { error: "upgrade_required", detail: "This action needs a paid Summit AI plan." };
       }
-      return { error: "auth_required", detail: "The Summit backend rejected the request (not authorized)." };
+      return { error: "auth_required", detail: "The Summit AI backend rejected the request (not authorized)." };
     }
     if (res.status === 422) {
-      return { error: "validation_error", detail: "The Summit backend rejected the request payload." };
+      return { error: "validation_error", detail: "The Summit AI backend rejected the request payload." };
     }
     if (res.status === 409) {
       // A conflict with the current experiment/variant state — surface the backend's code + message
@@ -136,7 +136,7 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
       }
       return { error: code, detail: message || "The action conflicts with the current experiment state." };
     }
-    return { error: "backend_unavailable", detail: `The Summit backend returned HTTP ${res.status}.` };
+    return { error: "backend_unavailable", detail: `The Summit AI backend returned HTTP ${res.status}.` };
   }
 
   /**
@@ -246,7 +246,7 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
     {
       name: "summit_get_audit",
       description:
-        "Fetch a Summit conversion audit by its share token or share link.\n\n" +
+        "Fetch a Summit AI conversion audit by its share token or share link.\n\n" +
         "`report` accepts a raw token, a full link like `https://app/audit?r=TOKEN`, or a `/audit/TOKEN` " +
         "path. Returns the overall score/grade, what the business is, a screenshot URL of the audited " +
         "page, and ranked findings — each with a CSS selector, current vs suggested copy, the rationale, " +
@@ -257,7 +257,7 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
     {
       name: "summit_implementation_plan",
       description:
-        "Turn a Summit audit into an ordered, code-ready implementation plan.\n\n" +
+        "Turn a Summit AI audit into an ordered, code-ready implementation plan.\n\n" +
         "Each step gives a priority tier (must_fix / should_fix / nice_to_fix), the CSS selector to " +
         "change, a concrete action, before→after copy, the rationale, and the expected lift — designed " +
         "to be executed top-to-bottom by a coding agent.",
@@ -267,7 +267,7 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
     {
       name: "summit_list_findings",
       description:
-        "List a Summit audit's findings, optionally filtered to one priority tier.\n\n" +
+        "List a Summit AI audit's findings, optionally filtered to one priority tier.\n\n" +
         "`tier` is one of must_fix, should_fix, nice_to_fix (empty = all).",
       inputSchema: {
         report: z.string().describe("Share token or share link"),
@@ -279,7 +279,7 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
     {
       name: "summit_run_audit",
       description:
-        "Kick off a NEW Summit conversion audit for a URL (1 free audit per email).\n\n" +
+        "Kick off a NEW Summit AI conversion audit for a URL (1 free audit per email).\n\n" +
         "Returns the share token + link; poll `summit_get_audit` with it until status == completed " +
         "(the deep, multi-section audit takes ~30–60s).",
       inputSchema: {
@@ -351,11 +351,23 @@ export function createTools({ env = process.env, fetchImpl = fetch } = {}) {
     {
       name: "summit_review_queue",
       description:
-        "Everything Summit proposed that's waiting on human sign-off.\n\n" +
+        "What Summit AI proposed that's waiting on human sign-off.\n\n" +
         "Returns `findings` (proposed fixes with predicted lift + confidence) and `experiments` " +
-        "(built + QA'd, ready to launch). Pass the ids to the approve/reject tools. Requires auth env vars.",
-      inputSchema: {},
-      handler: () => workspaceRequest("GET", "/review-queue"),
+        "(built + QA'd, ready to launch) — one window of the queue, experiments first. `total` / " +
+        "`finding_total` / `experiment_total` always count the whole queue; if total exceeds the " +
+        "window, page through with limit/offset (limit caps at 500). Pass the ids to the " +
+        "approve/reject tools. Requires auth env vars.",
+      inputSchema: {
+        limit: z.number().int().optional().describe("Window size, 1-500 (default 200)"),
+        offset: z.number().int().optional().describe("Items to skip (default 0)"),
+      },
+      handler: ({ limit, offset }) =>
+        workspaceRequest("GET", "/review-queue", {
+          params: {
+            limit: Math.max(1, Math.min(limit ?? 200, 500)),
+            offset: Math.max(0, offset ?? 0),
+          },
+        }),
     },
     {
       name: "summit_approve_finding",
